@@ -1,0 +1,94 @@
+import requests
+import json
+import glob
+import string
+from orderid import orderid
+from hashlib import md5
+
+global number,cash,AppKey,OpenId,orderid
+number = input('请输入你的手机号码：')
+cash = input('请输入你要充值的金额：')
+AppKey = '88f8ea5db8ce3155158ef4853645d7ec'
+OpenId = 'JHaac04cbac77dea5b86679db04e1fd19f'
+orderid = orderid
+telcheck_url =('https://op.juhe.cn/ofpay/mobile/telcheck')
+telquery_url = ('http://op.juhe.cn/ofpay/mobile/telquery')
+onlineorder_url = ('http://op.juhe.cn/ofpay/mobile/onlineorder')
+ordersta_url = ('http://op.juhe.cn/ofpay/mobile/ordersta')
+src= OpenId+AppKey+number+cash+orderid
+src = src.encode(encoding='utf-8')
+m = md5()
+m.update(src)
+sign = m.hexdigest()
+
+def telcheck():
+    params = {
+        'cardnum': cash,
+        'phoneno': number,
+        'key': AppKey,
+    }
+    data = requests.post(telcheck_url,data=params)
+    telcheck_content = data.json()
+    result = telcheck_content['error_code']
+    if result == 0:
+        return True
+    else:
+        return False
+
+
+def telquery():
+    params = {
+        'cardnum': cash,
+        'phoneno': number,
+        'key': AppKey,
+    }
+    data = requests.post(telquery_url, data= params)
+    telquery_content = data.json()
+    result = telquery_content['result']
+    result_cost = result['inprice']
+    result_area = result['game_area']
+    print('充值成本价：', result_cost)
+    print('号码归属地：', result_area)
+    result_errorcode = telquery_content['error_code']
+    if result_errorcode == 0:
+        return True
+    else:
+        return False
+
+def onlineorder():
+    params = {
+        'cardnum': cash,
+        'phoneno': number,
+        'key': AppKey,
+        'orderid': orderid,
+        'sign':sign,
+    }
+    data = requests.post(onlineorder_url,data=params)
+    onlineorder_content = data.json()
+    result = onlineorder_content['result']
+    sporder_id = result['sporder_id']
+    uorder_id = result['uorderid']
+    error_code = onlineorder_content['error_code']
+    print(sporder_id)
+    print(uorder_id)
+    if error_code == 0:
+        return True
+    else:
+        return False
+
+def ordersta():
+    params = {
+        'orderid': orderid,
+        'key': AppKey,
+    }
+    data = requests.post(ordersta_url,data= params)
+    ordersta_content = data.json()
+    print(ordersta_content)
+
+telcheck()
+if telcheck():
+    if telquery():
+        if onlineorder():
+            ordersta()
+else:
+    print('电话号码或充值金额输入错误。')
